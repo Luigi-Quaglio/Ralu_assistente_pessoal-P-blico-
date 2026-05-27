@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Ralu - Início{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">
+        <i class="bi bi-sun text-warning"></i> 
+        Bom dia!
+    </h1>
+    
+    <!-- Chat com IA -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                <i class="bi bi-chat-dots text-primary"></i> 
+                O que você precisa?
+            </h5>
+            <form id="chat-form" class="d-flex gap-2">
+                <input type="text" id="chat-input" class="form-control chat-input flex-grow-1" 
+                       placeholder="Ex: Agende uma reunião amanhã às 10h..." autocomplete="off">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+            <div id="chat-response" class="mt-3" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Estatísticas -->
+        <div class="col-md-4">
+            <div class="card stat-card mb-4">
+                <div class="stat-value">{{ eventos_hoje|length }}</div>
+                <div class="stat-label">Eventos hoje</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card mb-4">
+                <div class="stat-value">{{ eventos_semana|length }}</div>
+                <div class="stat-label">Esta semana</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card mb-4">
+                <div class="stat-value">
+                    {% if eventos_hoje %}
+                        {{ eventos_hoje[0].data.strftime('%H:%M') if eventos_hoje[0].data else '--:--' }}
+                    {% else %}
+                        --:--
+                    {% endif %}
+                </div>
+                <div class="stat-label">Próximo compromisso</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Eventos de Hoje -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calendar-day"></i> Hoje</span>
+                    <span class="badge bg-primary">{{ eventos_hoje|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if eventos_hoje %}
+                        {% for evento in eventos_hoje %}
+                        <div class="evento-item d-flex justify-content-between align-items-start" style="{% if evento.cor %}border-left-color: {{ evento.cor }}; background: {{ evento.cor }}15;{% endif %}">
+                            <div class="flex-grow-1">
+                                <div class="evento-hora" style="{% if evento.cor %}color: {{ evento.cor }};{% endif %}">
+                                    <i class="bi bi-clock"></i>
+                                    {% if evento.data and evento.data_fim %}
+                                        {% if evento.data.date() == evento.data_fim.date() %}
+                                            {{ evento.data.strftime('%H:%M') }} - {{ evento.data_fim.strftime('%H:%M') }}
+                                            <span class="badge-duracao">
+                                                {{ ((evento.data_fim - evento.data).total_seconds() // 3600)|int }}h
+                                                {% if ((evento.data_fim - evento.data).total_seconds() % 3600 // 60)|int > 0 %}
+                                                    {{ ((evento.data_fim - evento.data).total_seconds() % 3600 // 60)|int }}min
+                                                {% endif %}
+                                            </span>
+                                        {% else %}
+                                            {{ evento.data.strftime('%d/%m %H:%M') }} - {{ evento.data_fim.strftime('%d/%m %H:%M') }}
+                                            <span class="badge-duracao badge-multidia">
+                                                <i class="bi bi-calendar-range"></i> {{ (evento.data_fim.date() - evento.data.date()).days + 1 }} dias
+                                            </span>
+                                        {% endif %}
+                                    {% elif evento.data %}
+                                        {{ evento.data.strftime('%H:%M') }}
+                                    {% else %}
+                                        Sem horário
+                                    {% endif %}
+                                </div>
+                                <div class="evento-nome">
+                                    {% if evento.cor %}<span class="color-indicator" style="background: {{ evento.cor }};"></span>{% endif %}
+                                    {{ evento.nome }}
+                                </div>
+                                {% if evento.local %}
+                                <div class="evento-local">
+                                    <i class="bi bi-geo-alt"></i> {{ evento.local }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="evento-acoes d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editarEvento({{ evento.id }})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deletarEvento({{ evento.id }})" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-4">
+                            <i class="bi bi-emoji-smile" style="font-size: 2rem;"></i><br>
+                            Nenhum evento para hoje!
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Próximos Eventos -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calendar-week"></i> Próximos 7 dias</span>
+                    <a href="/agenda" class="btn btn-sm btn-outline-primary">Ver todos</a>
+                </div>
+                <div class="card-body">
+                    {% if eventos_semana %}
+                        {% for evento in eventos_semana[:5] %}
+                        <div class="evento-item d-flex justify-content-between align-items-start" style="{% if evento.cor %}border-left-color: {{ evento.cor }}; background: {{ evento.cor }}15;{% endif %}">
+                            <div class="flex-grow-1">
+                                <div class="evento-hora" style="{% if evento.cor %}color: {{ evento.cor }};{% endif %}">
+                                    <i class="bi bi-calendar"></i>
+                                    {% if evento.data and evento.data_fim %}
+                                        {% if evento.data.date() == evento.data_fim.date() %}
+                                            {{ evento.data.strftime('%d/%m %H:%M') }} - {{ evento.data_fim.strftime('%H:%M') }}
+                                            <span class="badge-duracao">
+                                                {{ ((evento.data_fim - evento.data).total_seconds() // 3600)|int }}h
+                                            </span>
+                                        {% else %}
+                                            {{ evento.data.strftime('%d/%m') }} - {{ evento.data_fim.strftime('%d/%m') }}
+                                            <span class="badge-duracao badge-multidia">
+                                                <i class="bi bi-calendar-range"></i> {{ (evento.data_fim.date() - evento.data.date()).days + 1 }} dias
+                                            </span>
+                                        {% endif %}
+                                    {% elif evento.data %}
+                                        {{ evento.data.strftime('%d/%m %H:%M') }}
+                                    {% else %}
+                                        Sem data
+                                    {% endif %}
+                                </div>
+                                <div class="evento-nome">
+                                    {% if evento.cor %}<span class="color-indicator" style="background: {{ evento.cor }};"></span>{% endif %}
+                                    {{ evento.nome }}
+                                </div>
+                                {% if evento.participante %}
+                                <div class="evento-local">
+                                    <i class="bi bi-person"></i> {{ evento.participante }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="evento-acoes d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editarEvento({{ evento.id }})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deletarEvento({{ evento.id }})" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-4">
+                            Nenhum evento nos próximos dias
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Editar Evento -->
+<div class="modal fade" id="modalEditarEvento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Evento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-evento">
+                    <input type="hidden" id="edit-evento-id">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="edit-nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data e Hora Início</label>
+                        <input type="datetime-local" class="form-control" id="edit-data" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data e Hora Fim <small class="text-muted">(opcional)</small></label>
+                        <input type="datetime-local" class="form-control" id="edit-data-fim">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Local</label>
+                        <input type="text" class="form-control" id="edit-local">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Participante</label>
+                        <input type="text" class="form-control" id="edit-participante">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" id="edit-descricao" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cor do Evento</label>
+                        <input type="hidden" id="edit-cor">
+                        <div class="color-picker-group">
+                            <div class="color-option" style="background: #6366f1;" data-cor="#6366f1" onclick="selecionarCor('#6366f1')" title="Roxo"></div>
+                            <div class="color-option" style="background: #3b82f6;" data-cor="#3b82f6" onclick="selecionarCor('#3b82f6')" title="Azul"></div>
+                            <div class="color-option" style="background: #22c55e;" data-cor="#22c55e" onclick="selecionarCor('#22c55e')" title="Verde"></div>
+                            <div class="color-option" style="background: #eab308;" data-cor="#eab308" onclick="selecionarCor('#eab308')" title="Amarelo"></div>
+                            <div class="color-option" style="background: #f97316;" data-cor="#f97316" onclick="selecionarCor('#f97316')" title="Laranja"></div>
+                            <div class="color-option" style="background: #ef4444;" data-cor="#ef4444" onclick="selecionarCor('#ef4444')" title="Vermelho"></div>
+                            <div class="color-option" style="background: #ec4899;" data-cor="#ec4899" onclick="selecionarCor('#ec4899')" title="Rosa"></div>
+                            <div class="color-option" style="background: #8b5cf6;" data-cor="#8b5cf6" onclick="selecionarCor('#8b5cf6')" title="Violeta"></div>
+                            <div class="color-option" style="background: #06b6d4;" data-cor="#06b6d4" onclick="selecionarCor('#06b6d4')" title="Ciano"></div>
+                            <div class="color-option" style="background: #64748b;" data-cor="" onclick="selecionarCor('')" title="Sem cor (padrão)">
+                                <i class="bi bi-x" style="color: white; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; height: 100%;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarEdicaoEvento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funções de editar e deletar eventos
+async function editarEvento(id) {
+    try {
+        const response = await fetch(`/api/eventos/${id}`);
+        const evento = await response.json();
+        
+        document.getElementById('edit-evento-id').value = evento.id;
+        document.getElementById('edit-nome').value = evento.nome || '';
+        document.getElementById('edit-local').value = evento.local || '';
+        document.getElementById('edit-participante').value = evento.participante || '';
+        document.getElementById('edit-descricao').value = evento.descricao || '';
+        
+        if (evento.data) {
+            const dataObj = new Date(evento.data);
+            document.getElementById('edit-data').value = dataObj.toISOString().slice(0, 16);
+        }
+        
+        if (evento.data_fim) {
+            const dataFimObj = new Date(evento.data_fim);
+            document.getElementById('edit-data-fim').value = dataFimObj.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('edit-data-fim').value = '';
+        }
+        
+        // Carregar cor
+        selecionarCor(evento.cor || '');
+        
+        new bootstrap.Modal(document.getElementById('modalEditarEvento')).show();
+    } catch (error) {
+        alert('Erro ao carregar evento: ' + error.message);
+    }
+}
+
+async function salvarEdicaoEvento() {
+    const id = document.getElementById('edit-evento-id').value;
+    const dados = {
+        nome: document.getElementById('edit-nome').value,
+        data: document.getElementById('edit-data').value,
+        data_fim: document.getElementById('edit-data-fim').value || null,
+        local: document.getElementById('edit-local').value,
+        participante: document.getElementById('edit-participante').value,
+        descricao: document.getElementById('edit-descricao').value,
+        cor: document.getElementById('edit-cor').value || null
+    };
+    
+    try {
+        const response = await fetch(`/api/eventos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarEvento')).hide();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Erro ao salvar: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Erro ao salvar: ' + error.message);
+    }
+}
+
+function selecionarCor(cor) {
+    // Atualizar campo hidden
+    document.getElementById('edit-cor').value = cor;
+    
+    // Remover seleção de todos
+    document.querySelectorAll('.color-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Adicionar seleção ao escolhido
+    const colorEl = document.querySelector(`.color-option[data-cor="${cor}"]`);
+    if (colorEl) {
+        colorEl.classList.add('selected');
+    }
+}
+
+async function deletarEvento(id) {
+    if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+    
+    try {
+        const response = await fetch(`/api/eventos/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Erro ao excluir evento');
+        }
+    } catch (error) {
+        alert('Erro ao excluir: ' + error.message);
+    }
+}
+
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const input = document.getElementById('chat-input');
+    const responseDiv = document.getElementById('chat-response');
+    const texto = input.value.trim();
+    
+    if (!texto) return;
+    
+    await processarChat(texto);
+    input.value = '';
+});
+
+async function processarChat(texto) {
+    const responseDiv = document.getElementById('chat-response');
+    const input = document.getElementById('chat-input');
+    
+    responseDiv.style.display = 'block';
+    responseDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Processando...</div>';
+    
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texto, session_id: 'web' })
+        });
+        
+        const data = await response.json();
+        
+        if (data.result && data.result.success) {
+            responseDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> 
+                    <strong>${data.result.message}</strong>
+                    <br><small class="text-muted">Intenção: ${data.classification.intent} (${(data.classification.confidence * 100).toFixed(0)}%)</small>
+                </div>
+            `;
+            // Recarrega após 2 segundos para mostrar novo evento
+            if (data.classification.intent === 'add_event') {
+                setTimeout(() => location.reload(), 2000);
+            }
+        } else if (data.result && data.result.needs_followup) {
+            const followupType = data.result.followup_type;
+            
+            if (followupType === 'select_contact' && data.result.options) {
+                // Mostra opções de contato como botões
+                let botoesHtml = data.result.options.map(opt => 
+                    `<button class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="selecionarContato('${opt.nome}')">
+                        <i class="bi bi-person"></i> ${opt.nome}
+                        <small class="text-muted">(${opt.email})</small>
+                    </button>`
+                ).join('');
+                
+                responseDiv.innerHTML = `
+                    <div class="alert alert-primary">
+                        <i class="bi bi-question-circle"></i> 
+                        <strong>${data.result.message}</strong>
+                        <div class="mt-3">${botoesHtml}</div>
+                    </div>
+                `;
+            } else if (followupType === 'datetime') {
+                // Follow-up de data/hora
+                responseDiv.innerHTML = `
+                    <div class="alert alert-primary">
+                        <i class="bi bi-question-circle"></i> 
+                        <strong>${data.result.message}</strong>
+                        <br><small class="text-muted">Ex: amanhã às 10h, sexta às 14:30, 15/03 às 9h</small>
+                    </div>
+                `;
+                input.placeholder = "Digite a data e horário...";
+                input.focus();
+            } else {
+                // Follow-up genérico
+                responseDiv.innerHTML = `
+                    <div class="alert alert-primary">
+                        <i class="bi bi-question-circle"></i> 
+                        <strong>${data.result.message}</strong>
+                    </div>
+                `;
+                input.focus();
+            }
+        } else {
+            responseDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    ${data.result ? data.result.message : 'Não entendi o que você quis dizer.'}
+                </div>
+            `;
+        }
+    } catch (error) {
+        responseDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle"></i> 
+                Erro ao processar: ${error.message}
+            </div>
+        `;
+    }
+}
+
+async function selecionarContato(nome) {
+    await processarChat(nome);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ralu - Agenda Inteligente{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-dark: #1e1e2e;
+            --bg-card: #2a2a3e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --border-color: #3a3a4e;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+        }
+        
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            min-height: 100vh;
+            position: fixed;
+            width: 260px;
+            padding: 1.5rem;
+        }
+        
+        .sidebar .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .sidebar .nav-link {
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 0.75rem;
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color:#888;
+        }
+        
+        .evento-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .evento-item:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateX(4px);
+        }
+        
+        .evento-item .evento-hora {
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .evento-item .evento-nome {
+            font-weight: 500;
+            margin: 0.25rem 0;
+        }
+        
+        .evento-item .evento-local {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        /* Badges de duração */
+        .badge-duracao {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.3);
+            color: var(--primary-color);
+            margin-left: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .badge-multidia {
+            background: rgba(234, 179, 8, 0.2);
+            color: var(--warning);
+        }
+        
+        /* Seletor de cores */
+        .color-picker-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.15);
+        }
+        
+        .color-option.selected {
+            border-color: white;
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+        
+        .color-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .chat-input {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            color: white;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                min-height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="bi bi-calendar-check"></i>
+                Ralu
+            </div>
+            
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">
+                        <i class="bi bi-house"></i> Início
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.url.path == '/agenda' %}active{% endif %}" href="/agenda">
+                        <i class="bi bi-calendar-week"></i> Agenda
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.url.path == '/calendario' %}active{% endif %}" href="/calendario">
+                        <i class="bi bi-calendar-month"></i> Calendário
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.url.path == '/contatos' %}active{% endif %}" href="/contatos">
+                        <i class="bi bi-people"></i> Contatos
+                    </a>
+                </li>
+            </ul>
+            
+            <hr class="my-4" style="border-color: var(--border-color);">
+            
+            <div class="mt-auto">
+                <small class="text-muted">
+                    <i class="bi bi-clock"></i> 
+                    {{ hoje.strftime('%d/%m/%Y %H:%M') if hoje else '' }}
+                </small>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content flex-grow-1">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

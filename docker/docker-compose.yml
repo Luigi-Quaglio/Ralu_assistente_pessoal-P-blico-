@@ -1,0 +1,32 @@
+services:
+  ralu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: ralu
+    ports:
+      - "11434:11434"
+      - "8001:8001"
+    volumes:
+      - ollama_data:/root/.ollama
+      # Bind mount para usar o mesmo banco de dados local
+      - ../data:/app/data
+      # Pasta outbox para TTS externo (host deverá montar ../tts_outbox)
+      - ../tts_outbox:/app/tts_outbox
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - PYTHONPATH=/app
+      - RALU_TTS=false
+      - RALU_TTS_OUTBOX_DIR=/app/tts_outbox
+    restart: unless-stopped
+    # GPU desabilitada - WSL sem NVIDIA adapters
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  ollama_data:

@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+
+{% block title %}Ralu - Agenda{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-calendar-week"></i> Agenda</h1>
+        <div class="btn-group">
+            <a href="/agenda?dias=7" class="btn btn-outline-primary {% if dias|length == 7 %}active{% endif %}">7 dias</a>
+            <a href="/agenda?dias=14" class="btn btn-outline-primary {% if dias|length == 14 %}active{% endif %}">14 dias</a>
+            <a href="/agenda?dias=30" class="btn btn-outline-primary {% if dias|length == 30 %}active{% endif %}">30 dias</a>
+        </div>
+    </div>
+    
+    <!-- Resumo rápido -->
+    {% set total_eventos = namespace(count=0) %}
+    {% set dias_com_eventos = namespace(count=0) %}
+    {% set dias_livres = namespace(count=0) %}
+    {% for dia in dias %}
+        {% set total_eventos.count = total_eventos.count + dia.eventos|length %}
+        {% if dia.eventos|length > 0 %}
+            {% set dias_com_eventos.count = dias_com_eventos.count + 1 %}
+        {% else %}
+            {% set dias_livres.count = dias_livres.count + 1 %}
+        {% endif %}
+    {% endfor %}
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body text-center py-3">
+                    <div class="stat-mini">{{ total_eventos.count }}</div>
+                    <small>Total de eventos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body text-center py-3">
+                    <div class="stat-mini">{{ dias_com_eventos.count }}</div>
+                    <small>Dias com eventos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-gradient-warning text-dark">
+                <div class="card-body text-center py-3">
+                    <div class="stat-mini">{{ dias_livres.count }}</div>
+                    <small>Dias livres</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="timeline-container">
+        {% for dia in dias %}
+        <div class="timeline-day {% if dia.is_hoje %}timeline-today{% endif %} {% if not dia.eventos %}timeline-empty{% endif %}">
+            <!-- Marcador do dia -->
+            <div class="timeline-marker">
+                <div class="timeline-date {% if dia.is_hoje %}bg-primary{% endif %}">
+                    <span class="timeline-weekday">{{ dia.data.strftime('%a').upper() }}</span>
+                    <span class="timeline-daynum">{{ dia.data.strftime('%d') }}</span>
+                </div>
+            </div>
+            
+            <!-- Conteúdo do dia -->
+            <div class="timeline-content">
+                <div class="timeline-header">
+                    <span class="timeline-title">
+                        {% if dia.is_hoje %}
+                            <span class="badge bg-primary me-2"><i class="bi bi-star-fill"></i> HOJE</span>
+                        {% endif %}
+                        {{ dia.data.strftime('%A, %d de %B').capitalize() }}
+                    </span>
+                    {% if dia.eventos %}
+                    <span class="badge bg-secondary">{{ dia.eventos|length }} evento(s)</span>
+                    {% endif %}
+                </div>
+                
+                {% if dia.eventos %}
+                <div class="timeline-events">
+                    {% for evento in dia.eventos %}
+                    <div class="timeline-event" style="{% if evento.cor %}--event-color: {{ evento.cor }};{% endif %}">
+                        <div class="event-time-block">
+                            {% if evento.data and evento.data_fim %}
+                                {% if evento.data.date() == evento.data_fim.date() %}
+                                    <div class="event-time-start">{{ evento.data.strftime('%H:%M') }}</div>
+                                    <div class="event-time-separator">│</div>
+                                    <div class="event-time-end">{{ evento.data_fim.strftime('%H:%M') }}</div>
+                                {% else %}
+                                    <div class="event-multiday">
+                                        <i class="bi bi-calendar-range"></i>
+                                        <span>{{ (evento.data_fim.date() - evento.data.date()).days + 1 }}d</span>
+                                    </div>
+                                {% endif %}
+                            {% elif evento.data %}
+                                <div class="event-time-single">{{ evento.data.strftime('%H:%M') }}</div>
+                            {% else %}
+                                <div class="event-time-single"><i class="bi bi-sun"></i></div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="event-content">
+                            <div class="event-title">
+                                {% if evento.cor %}<span class="event-color-dot" style="background: {{ evento.cor }};"></span>{% endif %}
+                                {{ evento.nome }}
+                            </div>
+                            
+                            {% if evento.data and evento.data_fim %}
+                            <div class="event-duration-bar">
+                                {% if evento.data.date() == evento.data_fim.date() %}
+                                    {% set duracao_horas = ((evento.data_fim - evento.data).total_seconds() // 3600)|int %}
+                                    {% set duracao_mins = ((evento.data_fim - evento.data).total_seconds() % 3600 // 60)|int %}
+                                    <span class="duration-text">
+                                        <i class="bi bi-hourglass-split"></i>
+                                        {{ duracao_horas }}h{% if duracao_mins > 0 %}{{ duracao_mins }}min{% endif %}
+                                    </span>
+                                    <div class="duration-visual" style="width: {{ [duracao_horas * 10 + 20, 100]|min }}%;"></div>
+                                {% else %}
+                                    <span class="duration-text duration-multiday">
+                                        <i class="bi bi-calendar-range"></i>
+                                        {{ evento.data.strftime('%d/%m') }} → {{ evento.data_fim.strftime('%d/%m') }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="event-details">
+                                {% if evento.local %}
+                                <span class="event-detail"><i class="bi bi-geo-alt"></i> {{ evento.local }}</span>
+                                {% endif %}
+                                {% if evento.participante %}
+                                <span class="event-detail"><i class="bi bi-person"></i> {{ evento.participante }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="event-actions">
+                            <button class="btn btn-sm btn-icon" onclick="editarEvento({{ evento.id }})" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-icon btn-danger-hover" onclick="deletarEvento({{ evento.id }})" title="Excluir">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="timeline-empty-msg">
+                    <i class="bi bi-check-circle text-success"></i> Dia livre
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+<!-- Modal Editar Evento -->
+<div class="modal fade" id="modalEditarEvento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Evento</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-evento">
+                    <input type="hidden" id="edit-evento-id">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="edit-nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data e Hora Início</label>
+                        <input type="datetime-local" class="form-control" id="edit-data" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data e Hora Fim <small class="text-muted">(opcional)</small></label>
+                        <input type="datetime-local" class="form-control" id="edit-data-fim">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Local</label>
+                        <input type="text" class="form-control" id="edit-local">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Participante</label>
+                        <input type="text" class="form-control" id="edit-participante">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control" id="edit-descricao" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cor do Evento</label>
+                        <input type="hidden" id="edit-cor">
+                        <div class="color-picker-group">
+                            <div class="color-option" style="background: #6366f1;" data-cor="#6366f1" onclick="selecionarCor('#6366f1')" title="Roxo"></div>
+                            <div class="color-option" style="background: #3b82f6;" data-cor="#3b82f6" onclick="selecionarCor('#3b82f6')" title="Azul"></div>
+                            <div class="color-option" style="background: #22c55e;" data-cor="#22c55e" onclick="selecionarCor('#22c55e')" title="Verde"></div>
+                            <div class="color-option" style="background: #eab308;" data-cor="#eab308" onclick="selecionarCor('#eab308')" title="Amarelo"></div>
+                            <div class="color-option" style="background: #f97316;" data-cor="#f97316" onclick="selecionarCor('#f97316')" title="Laranja"></div>
+                            <div class="color-option" style="background: #ef4444;" data-cor="#ef4444" onclick="selecionarCor('#ef4444')" title="Vermelho"></div>
+                            <div class="color-option" style="background: #ec4899;" data-cor="#ec4899" onclick="selecionarCor('#ec4899')" title="Rosa"></div>
+                            <div class="color-option" style="background: #8b5cf6;" data-cor="#8b5cf6" onclick="selecionarCor('#8b5cf6')" title="Violeta"></div>
+                            <div class="color-option" style="background: #06b6d4;" data-cor="#06b6d4" onclick="selecionarCor('#06b6d4')" title="Ciano"></div>
+                            <div class="color-option" style="background: #64748b;" data-cor="" onclick="selecionarCor('')" title="Sem cor (padrão)">
+                                <i class="bi bi-x" style="color: white; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; height: 100%;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarEdicaoEvento()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+async function editarEvento(id) {
+    try {
+        const response = await fetch(`/api/eventos/${id}`);
+        const evento = await response.json();
+        
+        document.getElementById('edit-evento-id').value = evento.id;
+        document.getElementById('edit-nome').value = evento.nome || '';
+        document.getElementById('edit-local').value = evento.local || '';
+        document.getElementById('edit-participante').value = evento.participante || '';
+        document.getElementById('edit-descricao').value = evento.descricao || '';
+        
+        if (evento.data) {
+            const dataObj = new Date(evento.data);
+            document.getElementById('edit-data').value = dataObj.toISOString().slice(0, 16);
+        }
+        
+        if (evento.data_fim) {
+            const dataFimObj = new Date(evento.data_fim);
+            document.getElementById('edit-data-fim').value = dataFimObj.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('edit-data-fim').value = '';
+        }
+        
+        // Carregar cor
+        selecionarCor(evento.cor || '');
+        
+        new bootstrap.Modal(document.getElementById('modalEditarEvento')).show();
+    } catch (error) {
+        alert('Erro ao carregar evento: ' + error.message);
+    }
+}
+
+async function salvarEdicaoEvento() {
+    const id = document.getElementById('edit-evento-id').value;
+    const dados = {
+        nome: document.getElementById('edit-nome').value,
+        data: document.getElementById('edit-data').value,
+        data_fim: document.getElementById('edit-data-fim').value || null,
+        local: document.getElementById('edit-local').value,
+        participante: document.getElementById('edit-participante').value,
+        descricao: document.getElementById('edit-descricao').value,
+        cor: document.getElementById('edit-cor').value || null
+    };
+    
+    try {
+        const response = await fetch(`/api/eventos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalEditarEvento')).hide();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Erro ao salvar: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Erro ao salvar: ' + error.message);
+    }
+}
+
+function selecionarCor(cor) {
+    // Atualizar campo hidden
+    document.getElementById('edit-cor').value = cor;
+    
+    // Remover seleção de todos
+    document.querySelectorAll('.color-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // Adicionar seleção ao escolhido
+    const colorEl = document.querySelector(`.color-option[data-cor="${cor}"]`);
+    if (colorEl) {
+        colorEl.classList.add('selected');
+    }
+}
+
+async function deletarEvento(id) {
+    if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+    
+    try {
+        const response = await fetch(`/api/eventos/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Erro ao excluir evento');
+        }
+    } catch (error) {
+        alert('Erro ao excluir: ' + error.message);
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Cards de estatísticas */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    }
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+    }
+    .stat-mini {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    
+    /* Timeline Container */
+    .timeline-container {
+        position: relative;
+        padding-left: 100px;
+    }
+    
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        left: 45px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, var(--primary-color), var(--border-color));
+    }
+    
+    /* Timeline Day */
+    .timeline-day {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    
+    .timeline-day.timeline-empty {
+        opacity: 0.6;
+    }
+    
+    .timeline-day.timeline-empty:hover {
+        opacity: 1;
+    }
+    
+    .timeline-day.timeline-today {
+        opacity: 1;
+    }
+    
+    /* Marcador de data */
+    .timeline-marker {
+        position: absolute;
+        left: -100px;
+        width: 90px;
+        text-align: center;
+    }
+    
+    .timeline-date {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 55px;
+        height: 55px;
+        border-radius: 12px;
+        background: var(--bg-card);
+        border: 2px solid var(--border-color);
+        transition: all 0.2s;
+    }
+    
+    .timeline-date.bg-primary {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+    
+    .timeline-weekday {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 1px;
+    }
+    
+    .timeline-daynum {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+    
+    .bg-primary .timeline-weekday,
+    .bg-primary .timeline-daynum {
+        color: white;
+    }
+    
+    /* Conteúdo do dia */
+    .timeline-content {
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .timeline-today .timeline-content {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+    }
+    
+    .timeline-header {
+        padding: 0.75rem 1rem;
+        background: rgba(99, 102, 241, 0.05);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .timeline-title {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .timeline-empty-msg {
+        padding: 0.75rem 1rem;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+    
+    /* Eventos na timeline */
+    .timeline-events {
+        padding: 0.5rem;
+    }
+    
+    .timeline-event {
+        --event-color: var(--primary-color);
+        display: flex;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: rgba(99, 102, 241, 0.05);
+        border-radius: 8px;
+        border-left: 3px solid var(--event-color);
+        margin-bottom: 0.5rem;
+        transition: all 0.2s;
+    }
+    
+    .timeline-event:last-child {
+        margin-bottom: 0;
+    }
+    
+    .timeline-event:hover {
+        background: rgba(99, 102, 241, 0.12);
+        transform: translateX(4px);
+    }
+    
+    /* Bloco de horário */
+    .event-time-block {
+        min-width: 55px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--event-color);
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .event-time-separator {
+        font-size: 0.6rem;
+        opacity: 0.5;
+        line-height: 1;
+    }
+    
+    .event-time-end {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+    
+    .event-multiday {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        background: rgba(234, 179, 8, 0.2);
+        color: var(--warning);
+        padding: 0.3rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+    
+    /* Conteúdo do evento */
+    .event-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .event-title {
+        font-weight: 500;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .event-color-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    
+    .event-duration-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+    
+    .duration-text {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .duration-visual {
+        height: 4px;
+        background: linear-gradient(90deg, var(--event-color), transparent);
+        border-radius: 2px;
+        opacity: 0.5;
+    }
+    
+    .duration-multiday {
+        color: var(--warning);
+        background: rgba(234, 179, 8, 0.15);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+    }
+    
+    .event-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.35rem;
+    }
+    
+    .event-detail {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    /* Ações do evento */
+    .event-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    
+    .timeline-event:hover .event-actions {
+        opacity: 1;
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    
+    .btn-icon:hover {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-icon.btn-danger-hover:hover {
+        background: var(--danger);
+        border-color: var(--danger);
+    }
+    
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .timeline-container {
+            padding-left: 70px;
+        }
+        
+        .timeline-container::before {
+            left: 30px;
+        }
+        
+        .timeline-marker {
+            left: -70px;
+            width: 60px;
+        }
+        
+        .timeline-date {
+            width: 45px;
+            height: 45px;
+        }
+        
+        .timeline-daynum {
+            font-size: 1rem;
+        }
+        
+        .event-time-block {
+            min-width: 45px;
+            font-size: 0.8rem;
+        }
+        
+        .event-actions {
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}

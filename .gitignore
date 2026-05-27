@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Banco SQLite gerado em execução
+data/ralu.db
+data/*.db
+
+# Fila de TTS (arquivos gerados em execução — pasta mantida, conteúdo ignorado)
+tts_outbox/*.txt
+tts_outbox/processed/*.txt
+
+# Docker volumes locais
+docker/data/
+ollama_data/
+
+# Distribuição Python
+build/
+dist/
+*.egg-info/
+*.egg

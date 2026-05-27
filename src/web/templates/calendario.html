@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Ralu - Calendário{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-calendar-month"></i> Calendário</h1>
+        <div class="d-flex align-items-center gap-3">
+            <a href="/calendario?mes={{ mes_anterior }}&ano={{ ano_anterior }}" class="btn btn-outline-primary">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <h3 class="mb-0">{{ nome_mes }} {{ ano }}</h3>
+            <a href="/calendario?mes={{ mes_proximo }}&ano={{ ano_proximo }}" class="btn btn-outline-primary">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0" style="table-layout: fixed;">
+                <thead>
+                    <tr class="text-center" style="background: var(--bg-card);">
+                        <th style="color: var(--danger);">Dom</th>
+                        <th>Seg</th>
+                        <th>Ter</th>
+                        <th>Qua</th>
+                        <th>Qui</th>
+                        <th>Sex</th>
+                        <th style="color: var(--primary-color);">Sáb</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set ns = namespace(dia_atual=1, semana_iniciada=false) %}
+                    {% set dias_no_mes = (ultimo_dia - primeiro_dia).days + 1 %}
+                    {% set dia_semana_inicio = primeiro_dia.weekday() %}
+                    {# Ajusta para começar no domingo (0=Dom, 6=Sab) #}
+                    {% set dia_semana_inicio = (dia_semana_inicio + 1) % 7 %}
+                    
+                    {% for semana in range(6) %}
+                        {% if ns.dia_atual <= dias_no_mes %}
+                        <tr>
+                            {% for dia_semana in range(7) %}
+                                {% set mostrar_dia = (semana > 0 or dia_semana >= dia_semana_inicio) and ns.dia_atual <= dias_no_mes %}
+                                <td class="p-2 align-top" style="height: 100px; {% if mostrar_dia and ns.dia_atual == hoje.day and mes == hoje.month and ano == hoje.year %}background: rgba(99, 102, 241, 0.2);{% endif %}">
+                                    {% if mostrar_dia %}
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <span class="{% if ns.dia_atual == hoje.day and mes == hoje.month and ano == hoje.year %}badge bg-primary{% endif %}"
+                                                  style="{% if dia_semana == 0 %}color: var(--danger);{% elif dia_semana == 6 %}color: var(--primary-color);{% endif %}">
+                                                {{ ns.dia_atual }}
+                                            </span>
+                                        {% if eventos_por_dia.get(ns.dia_atual) %}
+                                            {% set multi_dia_count = eventos_por_dia[ns.dia_atual]|selectattr('is_multi_dia')|list|length %}
+                                            {% set single_count = eventos_por_dia[ns.dia_atual]|length - multi_dia_count %}
+                                            <span class="badge bg-primary rounded-pill" title="{{ eventos_por_dia[ns.dia_atual]|length }} evento(s)">
+                                                {{ eventos_por_dia[ns.dia_atual]|length }}
+                                            </span>
+                                        {% endif %}
+                                        </div>
+                                        
+                                        {% if eventos_por_dia.get(ns.dia_atual) %}
+                                            {% for info in eventos_por_dia[ns.dia_atual][:3] %}
+                                                {% set evento = info.evento %}
+                                                {% set cor_evento = evento.cor or '#6366f1' %}
+                                                
+                                                {% if info.is_multi_dia %}
+                                                    {# Evento de múltiplos dias #}
+                                                    <div class="evento-multi-dia mb-1 px-1 rounded-1" 
+                                                         style="background: {{ cor_evento }}40; 
+                                                                border-left: 3px solid {{ cor_evento }};
+                                                                font-size: 0.7rem;
+                                                                {% if not info.is_inicio %}margin-left: -8px; padding-left: 11px; border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0;{% endif %}
+                                                                {% if not info.is_fim %}margin-right: -8px; border-top-right-radius: 0; border-bottom-right-radius: 0;{% endif %}"
+                                                         title="{{ evento.nome }} ({{ info.duracao_dias }} dias)">
+                                                        {% if info.is_inicio %}
+                                                            <i class="bi bi-arrow-right-circle" style="color: {{ cor_evento }};"></i>
+                                                            <span class="text-truncate">{{ evento.nome }}</span>
+                                                        {% elif info.is_fim %}
+                                                            <i class="bi bi-arrow-left-circle" style="color: {{ cor_evento }};"></i>
+                                                            <span class="text-muted" style="font-size: 0.65rem;">fim</span>
+                                                        {% else %}
+                                                            <span style="color: {{ cor_evento }};">━</span>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    {# Evento de dia único #}
+                                                    <div class="small text-truncate mb-1 px-1 rounded" 
+                                                         style="background: {{ cor_evento }}30; border-left: 2px solid {{ cor_evento }}; font-size: 0.7rem;"
+                                                         title="{{ evento.nome }}">
+                                                        {{ evento.data.strftime('%H:%M') if evento.data else '' }} {{ evento.nome }}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if eventos_por_dia[ns.dia_atual]|length > 3 %}
+                                                <div class="small text-muted" style="font-size: 0.7rem;">
+                                                    +{{ eventos_por_dia[ns.dia_atual]|length - 3 }} mais
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% set ns.dia_atual = ns.dia_atual + 1 %}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table {
+        color: var(--text-primary);
+        border-color: var(--border-color);
+    }
+    .table th, .table td {
+        border-color: var(--border-color);
+    }
+    .table thead th {
+        border-bottom: 2px solid var(--border-color);
+        font-weight: 500;
+    }
+    
+    /* Eventos de múltiplos dias */
+    .evento-multi-dia {
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        min-height: 18px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    
+    .evento-multi-dia i {
+        flex-shrink: 0;
+    }
+    
+    .evento-multi-dia span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Células do calendário */
+    .table td {
+        vertical-align: top;
+        position: relative;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
